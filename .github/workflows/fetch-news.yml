@@ -1,0 +1,35 @@
+name: 公式ニュース自動取得
+
+on:
+  schedule:
+    - cron: '0 0,6,12,18 * * *'  # 毎日 0時・6時・12時・18時（UTC）に実行
+  workflow_dispatch:               # GitHub 画面から手動実行も可能
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python をセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存パッケージをインストール
+        run: pip install requests beautifulsoup4
+
+      - name: ニュースを取得して news.json に保存
+        run: python fetch_news.py
+
+      - name: news.json をコミット・プッシュ
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add news.json
+          git diff --staged --quiet || git commit -m "chore: 公式ニュース更新 $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push

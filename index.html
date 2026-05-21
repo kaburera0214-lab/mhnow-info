@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#0f0c09">
+  <title>MHNow Info Hub | モンハンNow 情報まとめ</title>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts (日本語) -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome (アイコン) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- コンテンツデータ -->
+  <script src="data.js"></script>
+
+  <style>
+    /* ── 基本スタイル ────────────────────────────── */
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #0f0c09;
+      color: #f5e6c8;
+      min-height: 100dvh;
+    }
+
+    /* スクロールバー */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #1a1410; }
+    ::-webkit-scrollbar-thumb { background: #c9a227; border-radius: 3px; }
+
+    /* ── カード ──────────────────────────────────── */
+    .mh-card {
+      background: linear-gradient(145deg, #1e1a14 0%, #251f18 100%);
+      border: 1px solid #3d3420;
+      border-radius: 14px;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .mh-card:hover { border-color: #c9a22766; transform: translateY(-1px); }
+
+    /* ── タブ切り替え ─────────────────────────────── */
+    .tab-content { display: none; }
+    .tab-content.active {
+      display: block;
+      animation: fadeUp 0.2s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── ナビゲーション ───────────────────────────── */
+    .sticky-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #0f0c09ee;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid #3d3420;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      color: #706050;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+      line-height: 1.3;
+    }
+    .tab-btn:hover { color: #c9a227; }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #c9a227, #a07d1a);
+      color: #0f0c09;
+    }
+
+    /* ── ゴールドグラデーションテキスト ──────────── */
+    .gold-text {
+      background: linear-gradient(90deg, #c9a227, #f5d87b, #c9a227);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── 属性バッジ ───────────────────────────────── */
+    .elem { font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: inline-block; }
+    .elem-fire    { background: #b52a2a; color: #fff; }
+    .elem-water   { background: #1a68a8; color: #fff; }
+    .elem-thunder { background: #d4900a; color: #1a1410; }
+    .elem-ice     { background: #5aabee; color: #1a1410; }
+    .elem-dragon  { background: #7b34a8; color: #fff; }
+    .elem-none    { background: #444; color: #ccc; }
+
+    /* 弱点バッジ（強調あり） */
+    .weak2 { outline: 2px solid #ffffff55; }
+
+    /* ── チェックリスト ───────────────────────────── */
+    .mh-checkbox {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 2px solid #c9a227;
+      border-radius: 6px;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .mh-checkbox:checked { background: #c9a227; }
+    .mh-checkbox:checked::after {
+      content: '✓';
+      position: absolute;
+      top: -3px;
+      left: 3px;
+      color: #0f0c09;
+      font-weight: 900;
+      font-size: 15px;
+    }
+
+    /* ── 優先度バッジ ─────────────────────────────── */
+    .pri-high   { background: #c0392b22; border: 1px solid #c0392b88; color: #e74c3c; }
+    .pri-medium { background: #e67e2222; border: 1px solid #e67e2288; color: #f39c12; }
+    .pri-low    { background: #27ae6022; border: 1px solid #27ae6088; color: #2ecc71; }
+
+    /* ── カテゴリチップ ───────────────────────────── */
+    .chip-event       { background: #1a5aaa22; border: 1px solid #1a5aaa; color: #74b9ff; }
+    .chip-update      { background: #27ae6022; border: 1px solid #27ae60; color: #2ecc71; }
+    .chip-notice      { background: #c9a22722; border: 1px solid #c9a227; color: #f5d87b; }
+    .chip-maintenance { background: #95a5a622; border: 1px solid #95a5a6; color: #bdc3c7; }
+
+    /* ── スキルタグ ───────────────────────────────── */
+    .skill-tag {
+      font-size: 11px;
+      background: #2d2820;
+      border: 1px solid #4d4030;
+      color: #d4c4a0;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    /* ── SNSフィルターボタン ──────────────────────── */
+    .filter-btn {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid #3d3420;
+      color: #a09070;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-btn.active,
+    .filter-btn:hover {
+      border-color: #c9a227;
+      color: #c9a227;
+    }
+
+    /* ── 星評価 ───────────────────────────────────── */
+    .star-fill   { color: #c9a227; }
+    .star-empty  { color: #3d3420; }
+
+    /* ── 汎用ユーティリティ ───────────────────────── */
+    .section-title {
+      font-size: 17px;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+    .muted { color: #a09070; }
+    .text-gold { color: #c9a227; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════ ヘッダー ═══════════ -->
+  <header style="background: linear-gradient(135deg, #1a0800, #2d1200, #1a0800); border-bottom: 1px solid #c9a22740;">
+    <div style="max-width: 640px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <h1 style="font-size: 22px; font-weight: 900;" class="gold-text">⚔ MHNow Info Hub</h1>
+        <p style="font-size: 12px; color: #a09070; margin-top: 2px;">モンハンNow 情報まとめ</p>
+      </div>
+      <div style="text-align: right;">
+        <p style="font-size: 11px; color: #706050;">最終更新</p>
+        <p id="lastUpdated" style="font-size: 13px; font-weight: 700; color: #c9a227;"></p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════ ナビゲーション ═══════════ -->
+  <nav class="sticky-nav">
+    <div style="max-width: 640px; margin: 0 auto; padding: 6px 8px; display: flex; gap: 4px;">
+      <button class="tab-btn active" onclick="switchTab('official', this)">
+        <div><i class="fas fa-newspaper"></i></div>
+        <div>公式情報</div>
+      </button>
+      <button class="tab-btn" onclick="switchTab('sns', this)">
+        <div><i class="fas fa-shield-halved"></i></div>
+        <div>SNS装備</div>
+      </button>
+      <button class="tab-btn" onclick="switchTab('outbreak', this)">
+        <div><i class="fas fa-dragon"></i></div>
+        <div>大量発生</div>
+      </button>
+      <button class="tab-btn" onclick="switchTab('defense', this)">
+        <div><i class="fas fa-tower-observation"></i></div>
+        <div>拠点要撃</div>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══════════ メインコンテンツ ═══════════ -->
+  <main style="max-width: 640px; margin: 0 auto; padding: 12px 12px 40px;">
+
+    <!-- ─── 公式情報 ─── -->
+    <div id="tab-official" class="tab-content active">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <h2 class="section-title gold-text" style="margin-bottom:0;">公式情報・お知らせ</h2>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button id="refresh-btn" onclick="fetchOfficialNews()"
+                  style="font-size:12px; color:#c9a227; background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
+            <i class="fas fa-rotate-right" id="refresh-icon"></i> 更新
+          </button>
+          <a href="https://monsterhunternow.com/ja/news" target="_blank"
+             style="font-size:12px; color:#a09070; text-decoration:none;">
+            公式サイト <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;"></i>
+          </a>
+        </div>
+      </div>
+      <p id="official-source-label" style="font-size:11px; color:#706050; margin-bottom:10px;"></p>
+      <div id="official-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+    <!-- ─── SNS装備 ─── -->
+    <div id="tab-sns" class="tab-content">
+      <h2 class="section-title gold-text">SNS装備紹介</h2>
+      <p class="muted" style="font-size:12px; margin-top:-8px; margin-bottom:10px;">X・YouTubeから厳選した装備・ビルド</p>
+      <div id="sns-filters" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;"></div>
+      <div id="sns-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+    <!-- ─── 大量発生 ─── -->
+    <div id="tab-outbreak" class="tab-content">
+      <h2 class="section-title gold-text">大量発生イベント</h2>
+      <p class="muted" style="font-size:12px; margin-top:-8px; margin-bottom:10px;">開催中・近日開催のイベントと推奨装備</p>
+      <div id="outbreak-list" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </div>
+
+    <!-- ─── 拠点要撃戦 ─── -->
+    <div id="tab-defense" class="tab-content">
+      <div id="defense-content"></div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════ JavaScript ═══════════ -->
+  <script>
+
+  // ── タブ切り替え ─────────────────────────────────
+  function switchTab(tabName, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tabName).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── ユーティリティ ───────────────────────────────
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function elemBadge(elem) {
+    const map = {
+      '火': ['elem-fire','🔥 火'],
+      '水': ['elem-water','💧 水'],
+      '雷': ['elem-thunder','⚡ 雷'],
+      '氷': ['elem-ice','❄ 氷'],
+      '龍': ['elem-dragon','🐲 龍'],
+      'なし': ['elem-none','− なし'],
+    };
+    const [cls, label] = map[elem] || ['elem-none', elem];
+    return `<span class="elem ${cls}">${label}</span>`;
+  }
+
+  const WEAKNESS_META = {
+    fire:    { label:'火', cls:'elem-fire' },
+    water:   { label:'水', cls:'elem-water' },
+    thunder: { label:'⚡雷', cls:'elem-thunder' },
+    ice:     { label:'❄氷', cls:'elem-ice' },
+    dragon:  { label:'龍', cls:'elem-dragon' },
+  };
+
+  function weakBadges(weaknesses) {
+    return Object.entries(weaknesses)
+      .filter(([, v]) => v > 0)
+      .sort(([, a], [, b]) => b - a)
+      .map(([k, v]) => {
+        const m = WEAKNESS_META[k] || { label: k, cls: 'elem-none' };
+        const extra = v === 2 ? ' weak2' : '';
+        const stars = v === 2 ? ' ★★' : ' ★';
+        return `<span class="elem ${m.cls}${extra}">${m.label}${stars}</span>`;
+      }).join('');
+  }
+
+  function catChip(cat) {
+    const map = {
+      'イベント': 'chip-event',
+      'アップデート': 'chip-update',
+      'お知らせ': 'chip-notice',
+      'メンテナンス': 'chip-maintenance',
+    };
+    const cls = map[cat] || 'chip-notice';
+    return `<span style="font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;" class="${cls}">${esc(cat)}</span>`;
+  }
+
+  function priBadge(p) {
+    const map = { high:['pri-high','必須'], medium:['pri-medium','推奨'], low:['pri-low','任意'] };
+    const [cls, label] = map[p] || ['pri-low', p];
+    return `<span style="font-size:10px; padding:2px 6px; border-radius:4px;" class="${cls}">${label}</span>`;
+  }
+
+  function starsHtml(n, max=5) {
+    let out = '';
+    for (let i = 1; i <= max; i++) {
+      out += `<span class="${i <= n ? 'star-fill' : 'star-empty'}">★</span>`;
+    }
+    return out;
+  }
+
+  function daysLeft(endDateStr) {
+    const diff = Math.ceil((new Date(endDateStr) - new Date()) / 86400000);
+    if (diff < 0)  return '<span style="color:#666">終了</span>';
+    if (diff === 0) return '<span style="color:#e74c3c;font-weight:700">本日終了！</span>';
+    if (diff <= 3)  return `<span style="color:#e74c3c;font-weight:700">残り${diff}日</span>`;
+    return `<span class="muted">残り${diff}日</span>`;
+  }
+
+  function fmtDate(s) {
+    const d = new Date(s);
+    return `${d.getMonth()+1}/${d.getDate()}`;
+  }
+
+  function sourceIcon(source) {
+    if (source === 'YouTube') return '<i class="fab fa-youtube" style="color:#ff0000;"></i>';
+    if (source === 'X')       return '<i class="fab fa-x-twitter" style="color:#e0e0e0;"></i>';
+    return '<i class="fas fa-link" style="color:#a09070;"></i>';
+  }
+
+  // ── 公式情報：自動取得 ──────────────────────────
+  const NEWS_URL = 'https://monsterhunternow.com/ja/news';
+
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
+    ]);
+  }
+
+  // 試すプロキシ一覧（順番に試す）
+  const PROXY_LIST = [
+    {
+      name: 'corsproxy.io',
+      get: () => fetch(`https://corsproxy.io/?${encodeURIComponent(NEWS_URL)}`)
+                   .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
+    },
+    {
+      name: 'codetabs',
+      get: () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(NEWS_URL)}`)
+                   .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
+    },
+    {
+      name: 'allorigins',
+      get: () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(NEWS_URL)}`)
+                   .then(r => r.json())
+                   .then(j => { if (!j.contents) throw new Error('empty'); return j.contents; })
+    },
+  ];
+
+  async function fetchOfficialNews() {
+    const el       = document.getElementById('official-list');
+    const srcLabel = document.getElementById('official-source-label');
+    const icon     = document.getElementById('refresh-icon');
+
+    icon.className = 'fas fa-spinner fa-spin';
+    srcLabel.textContent = '';
+    el.innerHTML = `
+      <div style="text-align:center; padding:36px; color:#a09070;">
+        <i class="fas fa-spinner fa-spin" style="font-size:22px; color:#c9a227; display:block; margin-bottom:10px;"></i>
+        最新情報を読み込み中...
+      </div>`;
+
+    // ── 方法1: news.json（GitHub Actions が定期更新） ──
+    try {
+      const res = await withTimeout(fetch('./news.json?t=' + Date.now()), 5000);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.items && json.items.length > 0) {
+          icon.className = 'fas fa-rotate-right';
+          renderOfficialItems(json.items);
+          srcLabel.textContent = `✓ 自動更新データ · ${json.updated} 取得`;
+          srcLabel.style.color = '#27ae60';
+          return;
+        }
+      }
+    } catch (e) {
+      console.log('[MHNow] news.json 未取得:', e.message);
+    }
+
+    // ── 方法2: CORS プロキシ（GitHub Pages 未設定時のバックアップ） ──
+    let html = null;
+    for (const proxy of PROXY_LIST) {
+      try {
+        html = await withTimeout(proxy.get(), 7000);
+        if (html) { console.log(`[MHNow] ${proxy.name} 成功`); break; }
+      } catch (e) {
+        console.warn(`[MHNow] ${proxy.name} 失敗:`, e.message);
+      }
+    }
+
+    if (html) {
+      const items = parseNewsItems(html);
+      if (items.length > 0) {
+        icon.className = 'fas fa-rotate-right';
+        renderOfficialItems(items);
+        const now = new Date();
+        srcLabel.textContent =
+          `✓ リアルタイム取得 · ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新`;
+        srcLabel.style.color = '#27ae60';
+        return;
+      }
+    }
+
+    // ── 方法3: data.js フォールバック ──────────────────
+    icon.className = 'fas fa-rotate-right';
+    renderOfficialFallback();
+    srcLabel.innerHTML =
+      '⚠ 手動データを表示中。GitHub Pages + Actions を設定すると自動更新されます。' +
+      ' <button onclick="fetchOfficialNews()" style="color:#c9a227;background:none;border:none;cursor:pointer;font-size:11px;text-decoration:underline;">再試行</button>';
+    srcLabel.style.color = '#e67e22';
+  }
+
+  // ── 公式情報：HTML パース ────────────────────────
+  function parseNewsItems(html) {
+    const parser = new DOMParser();
+    const doc    = parser.parseFromString(html, 'text/html');
+    const BASE   = 'https://monsterhunternow.com';
+    const items  = [];
+    const seen   = new Set();
+
+    // ニュース記事へのリンク（/ja/news/スラッグ）を起点に周辺要素を取得
+    doc.querySelectorAll('a[href^="/ja/news/"]').forEach(link => {
+      const href = link.getAttribute('href');
+      // /ja/news/ そのもの（一覧ページへの自己リンク）は除外
+      if (href === '/ja/news' || href === '/ja/news/') return;
+      if (seen.has(href)) return;
+      seen.add(href);
+
+      // 最も近い意味のあるコンテナを探す
+      const container = link.closest('li, article, [class*="news"], [class*="card"], [class*="item"]')
+                     || link.closest('div')
+                     || link.parentElement;
+
+      // タイトル
+      const titleEl = container.querySelector('h1,h2,h3,h4,[class*="title"]');
+      const title   = (titleEl || link).textContent.trim().replace(/\s+/g, ' ');
+      if (!title || title.length < 4) return;
+
+      // 概要
+      const summaryEl = container.querySelector('p, [class*="desc"], [class*="summary"], [class*="body"]');
+      const summary   = summaryEl ? summaryEl.textContent.trim().replace(/\s+/g, ' ') : '';
+
+      // カテゴリ
+      const catEl   = container.querySelector('span, [class*="category"], [class*="tag"], [class*="label"]');
+      const category = catEl ? catEl.textContent.trim() : 'お知らせ';
+
+      // サムネイル（Google CDN 画像など）
+      const imgEl = container.querySelector('img');
+      const image = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '') : '';
+
+      items.push({ title, summary, category, image, url: BASE + href });
+    });
+
+    return items;
+  }
+
+  // ── 公式情報：取得成功時のレンダリング ──────────
+  function renderOfficialItems(items) {
+    const el = document.getElementById('official-list');
+    el.innerHTML = items.map(item => `
+      <div class="mh-card" style="padding:14px;">
+
+        <!-- サムネイル＋タイトル行 -->
+        <div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:10px;">
+          ${item.image
+            ? `<img src="${esc(item.image)}"
+                    style="width:90px; height:64px; object-fit:cover; border-radius:8px; flex-shrink:0; background:#1a1410;"
+                    onerror="this.style.display='none'">`
+            : ''}
+          <div style="flex:1; min-width:0;">
+            <div style="margin-bottom:6px;">${catChip(item.category)}</div>
+            <p style="font-weight:700; font-size:15px; line-height:1.4;">${esc(item.title)}</p>
+          </div>
+        </div>
+
+        <!-- 記事本文の要約 -->
+        ${item.body_summary || item.summary ? `
+          <div style="background:#1a1610; border-radius:8px; padding:10px 12px; margin-bottom:10px;">
+            <p style="font-size:13px; color:#c0b090; line-height:1.85;">
+              ${esc(item.body_summary || item.summary)}
+            </p>
+          </div>` : ''}
+
+        <!-- 詳細リンク -->
+        <a href="${esc(item.url)}" target="_blank" rel="noopener"
+           style="font-size:12px; color:#c9a227; text-decoration:none;">
+          詳細を見る →
+        </a>
+      </div>
+    `).join('');
+  }
+
+  // ── 公式情報：フォールバック（data.js） ─────────
+  function renderOfficialFallback() {
+    const el = document.getElementById('official-list');
+    el.innerHTML = MH_DATA.official.map(item => `
+      <a href="${esc(item.url)}" target="_blank" rel="noopener"
+         style="display:block; text-decoration:none; color:inherit;">
+        <div class="mh-card" style="padding:14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              ${catChip(item.category)}
+              ${item.isNew ? '<span style="font-size:11px; padding:2px 7px; border-radius:4px; background:#c0392b; color:#fff; font-weight:700;">NEW</span>' : ''}
+            </div>
+            <span class="muted" style="font-size:12px; white-space:nowrap;">${esc(item.date)}</span>
+          </div>
+          <p style="font-weight:700; font-size:15px; margin-bottom:6px; line-height:1.4;">${esc(item.title)}</p>
+          <p class="muted" style="font-size:13px; line-height:1.6;">${esc(item.summary)}</p>
+          <p style="font-size:12px; color:#c9a227; margin-top:8px;">詳細を見る <i class="fas fa-arrow-right" style="font-size:10px;"></i></p>
+        </div>
+      </a>
+    `).join('');
+  }
+
+  // ── SNS装備 レンダリング ─────────────────────────
+  let snsFilter = 'all';
+
+  function buildSnsFilters() {
+    const filters = ['all', 'YouTube', 'X', '初心者向け', '汎用', '高火力'];
+    const labels  = { all: 'すべて', YouTube: 'YouTube', X: 'X(Twitter)', '初心者向け': '初心者向け', '汎用': '汎用', '高火力': '高火力' };
+    const el = document.getElementById('sns-filters');
+    el.innerHTML = filters.map(f =>
+      `<button class="filter-btn${f === 'all' ? ' active' : ''}" onclick="setSnsFilter('${f}', this)">${labels[f] || f}</button>`
+    ).join('');
+  }
+
+  function setSnsFilter(f, btn) {
+    snsFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSns();
+  }
+
+  function renderSns() {
+    const el = document.getElementById('sns-list');
+    let items = MH_DATA.sns;
+    if (snsFilter !== 'all') {
+      items = items.filter(i => i.source === snsFilter || i.tags.includes(snsFilter) || i.difficulty === snsFilter);
+    }
+
+    const diffColor = { '初心者向け': '#2ecc71', '中級者向け': '#f39c12', '上級者向け': '#e74c3c' };
+
+    el.innerHTML = items.map(item => {
+      const embed = item.youtubeId
+        ? `<div style="margin-top:12px; border-radius:10px; overflow:hidden; aspect-ratio:16/9;">
+             <iframe style="width:100%; height:100%;"
+               src="https://www.youtube.com/embed/${esc(item.youtubeId)}"
+               frameborder="0" allowfullscreen loading="lazy"></iframe>
+           </div>`
+        : '';
+
+      return `
+        <div class="mh-card" style="padding:14px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            ${sourceIcon(item.source)}
+            <span class="muted" style="font-size:12px;">${esc(item.author)}</span>
+            <span style="font-size:11px; font-weight:700; color:${diffColor[item.difficulty] || '#a09070'};">${esc(item.difficulty)}</span>
+          </div>
+          <p style="font-weight:700; font-size:15px; margin-bottom:10px; line-height:1.4;">${esc(item.title)}</p>
+
+          <!-- 武器・属性 -->
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <span class="muted" style="font-size:12px;">武器:</span>
+            <span style="font-weight:700; font-size:14px;">${esc(item.weapon)}</span>
+            ${elemBadge(item.weaponElement)}
+          </div>
+
+          <!-- スキル -->
+          <div style="margin-bottom:10px;">
+            <p class="muted" style="font-size:11px; margin-bottom:4px;">推奨スキル</p>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+              ${item.armorSkills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}
+            </div>
+          </div>
+
+          <!-- タグ -->
+          <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;">
+            ${item.tags.map(t => `<span style="font-size:11px; padding:2px 8px; border-radius:999px; background:#c9a22718; border:1px solid #c9a22740; color:#c9a227;">${esc(t)}</span>`).join('')}
+          </div>
+
+          <!-- メモ -->
+          <div style="background:#1a1610; border-radius:8px; padding:10px;">
+            <p style="font-size:12px; color:#a09070; line-height:1.7;">💡 ${esc(item.notes)}</p>
+          </div>
+
+          ${embed}
+
+          <a href="${esc(item.url)}" target="_blank" rel="noopener"
+             style="display:inline-flex; align-items:center; gap:6px; margin-top:10px; font-size:12px; color:#c9a227; text-decoration:none;">
+            ${sourceIcon(item.source)} 元の投稿を見る <i class="fas fa-arrow-right" style="font-size:10px;"></i>
+          </a>
+        </div>
+      `;
+    }).join('') || '<p class="muted" style="text-align:center; padding:32px;">該当する装備紹介がありません</p>';
+  }
+
+  // ── 大量発生 レンダリング ────────────────────────
+  function renderOutbreak() {
+    const el = document.getElementById('outbreak-list');
+    const sorted = [...MH_DATA.outbreak].sort((a, b) => b.isActive - a.isActive);
+
+    el.innerHTML = sorted.map(item => `
+      <div class="mh-card" style="padding:14px; ${item.isActive ? 'border-color:#c9a22755;' : 'opacity:0.72;'}">
+
+        <!-- ヘッダー -->
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:36px; line-height:1;">${item.icon}</span>
+            <div>
+              <p style="font-weight:900; font-size:20px; line-height:1.2;">${esc(item.monster)}</p>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+                ${elemBadge(item.element)}
+                <span style="font-size:13px;">${starsHtml(item.starRating)}</span>
+              </div>
+            </div>
+          </div>
+          <div style="text-align:right; flex-shrink:0;">
+            ${item.isActive
+              ? '<span style="font-size:11px; background:#1a5a2a; color:#4de88a; padding:2px 8px; border-radius:999px; font-weight:700;">開催中</span>'
+              : '<span style="font-size:11px; background:#333; color:#aaa; padding:2px 8px; border-radius:999px; font-weight:700;">近日開催</span>'}
+            <div style="margin-top:4px; font-size:13px;">${daysLeft(item.endDate)}</div>
+            <div class="muted" style="font-size:11px;">${fmtDate(item.startDate)}〜${fmtDate(item.endDate)}</div>
+          </div>
+        </div>
+
+        <!-- 弱点属性 -->
+        <div style="margin-bottom:10px;">
+          <p class="muted" style="font-size:11px; margin-bottom:4px;">弱点属性 <span style="font-size:10px;">（★★=特効 ★=弱点）</span></p>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${weakBadges(item.weaknesses) || '<span class="muted" style="font-size:12px;">弱点属性なし</span>'}
+          </div>
+        </div>
+
+        <!-- 推奨属性 -->
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          <span class="muted" style="font-size:12px;">推奨属性:</span>
+          <span style="font-weight:700; color:#c9a227; font-size:14px;">${esc(item.recommendedElement)}</span>
+        </div>
+
+        <!-- 必須スキル -->
+        <div style="margin-bottom:10px;">
+          <p class="muted" style="font-size:11px; margin-bottom:4px;">必須スキル</p>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${item.keySkills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- Tips -->
+        <div style="background:#1a1610; border-radius:8px; padding:10px; margin-bottom:10px;">
+          <p style="font-size:11px; color:#c9a227; font-weight:700; margin-bottom:4px;">💡 攻略Tips</p>
+          <p style="font-size:12px; color:#a09070; line-height:1.7;">${esc(item.tips)}</p>
+        </div>
+
+        <!-- 報酬 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div style="background:#1a1610; border-radius:8px; padding:10px;">
+            <p class="muted" style="font-size:11px; margin-bottom:4px;">主な報酬</p>
+            ${item.mainRewards.map(r => `<p style="font-size:12px; font-weight:600;">• ${esc(r)}</p>`).join('')}
+          </div>
+          <div style="background:#1a1610; border-radius:8px; padding:10px;">
+            <p class="muted" style="font-size:11px; margin-bottom:4px;">レア報酬</p>
+            ${item.rareRewards.map(r => `<p style="font-size:12px; font-weight:700; color:#c9a227;">✦ ${esc(r)}</p>`).join('')}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── 拠点要撃戦 レンダリング ──────────────────────
+  function renderDefense() {
+    const d = MH_DATA.defense;
+    const buildColorMap = {
+      red:   { border:'#8b1a1a66', bg:'#3a000022', text:'#e74c3c' },
+      blue:  { border:'#1a3a8b66', bg:'#00003a22', text:'#74b9ff' },
+      green: { border:'#1a5a2a66', bg:'#00280022', text:'#2ecc71' },
+    };
+
+    document.getElementById('defense-content').innerHTML = `
+
+      <!-- 現在の開催情報 -->
+      <div class="mh-card" style="padding:14px; border-color:#c9a22755; margin-bottom:14px;">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px;">
+          <div>
+            <span style="font-size:11px; background:#c9a227; color:#0f0c09; padding:2px 8px; border-radius:999px; font-weight:700;">${esc(d.current.season)}</span>
+            <h2 style="font-size:18px; font-weight:900; margin-top:6px; line-height:1.3;">${esc(d.current.title)}</h2>
+          </div>
+          <div style="text-align:right; flex-shrink:0;">
+            <p style="font-size:18px; font-weight:700; color:#c9a227;">${esc(d.current.difficulty)}</p>
+            <div style="font-size:13px;">${daysLeft(d.current.endDate)}</div>
+          </div>
+        </div>
+        <p class="muted" style="font-size:13px; line-height:1.7; margin-bottom:10px;">${esc(d.current.description)}</p>
+        <div style="margin-bottom:8px;">
+          <p class="muted" style="font-size:11px; margin-bottom:4px;">出現モンスター</p>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${d.current.targetMonsters.map(m => `<span style="font-size:12px; padding:2px 8px; border-radius:6px; background:#5a000022; border:1px solid #8b000066; color:#e87070;">${esc(m)}</span>`).join('')}
+          </div>
+        </div>
+        <div>
+          <p class="muted" style="font-size:11px; margin-bottom:4px;">報酬</p>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${d.current.rewards.map(r => `<span style="font-size:12px; padding:2px 8px; border-radius:6px; background:#c9a22718; border:1px solid #c9a22740; color:#c9a227;">${esc(r)}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- 推奨ビルド -->
+      <h3 class="section-title gold-text">推奨ビルド</h3>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:18px;">
+        ${d.recommendedBuilds.map(b => {
+          const c = buildColorMap[b.color] || buildColorMap.red;
+          return `
+            <div class="mh-card" style="padding:12px; border-color:${c.border}; background:${c.bg};">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span style="font-size:26px;">${b.icon}</span>
+                <div>
+                  <p style="font-weight:700; color:${c.text}; font-size:15px;">${esc(b.role)}</p>
+                  <p class="muted" style="font-size:12px;">${esc(b.weapon)}</p>
+                </div>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+                ${b.skills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}
+              </div>
+              <p class="muted" style="font-size:12px; line-height:1.6;">${esc(b.notes)}</p>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- 準備チェックリスト -->
+      <h3 class="section-title gold-text">出発前チェックリスト</h3>
+      <div class="mh-card" style="padding:14px; margin-bottom:8px;">
+        <div style="display:flex; flex-direction:column; gap:12px;" id="checklist-items">
+          ${d.checklist.map((item, i) => `
+            <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
+              <input type="checkbox" class="mh-checkbox" id="chk-${i}"
+                     onchange="saveCheck(${i}, this.checked)"
+                     ${getCheck(i) ? 'checked' : ''}>
+              <div style="flex:1; padding-top:1px;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <span id="chk-label-${i}"
+                        style="font-size:14px; ${getCheck(i) ? 'text-decoration:line-through; color:#706050;' : ''}">${esc(item.item)}</span>
+                  ${priBadge(item.priority)}
+                  <span class="muted" style="font-size:11px;">${esc(item.category)}</span>
+                </div>
+              </div>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      <button onclick="resetChecklist()"
+              style="font-size:12px; color:#a09070; background:none; border:none; cursor:pointer; margin-bottom:18px;">
+        <i class="fas fa-rotate-left"></i> チェックをリセット
+      </button>
+
+      <!-- 攻略Tips -->
+      <h3 class="section-title gold-text">攻略Tips</h3>
+      <div class="mh-card" style="padding:14px; display:flex; flex-direction:column; gap:10px;">
+        ${d.generalTips.map((tip, i) => `
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <span style="font-weight:700; color:#c9a227; font-size:13px; min-width:18px;">${i+1}</span>
+            <p class="muted" style="font-size:13px; line-height:1.7;">${esc(tip)}</p>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // ── チェックリスト 状態保存 ──────────────────────
+  function getCheck(i) {
+    return localStorage.getItem('mhn-check-' + i) === '1';
+  }
+
+  function saveCheck(i, val) {
+    localStorage.setItem('mhn-check-' + i, val ? '1' : '0');
+    const label = document.getElementById('chk-label-' + i);
+    if (label) {
+      label.style.textDecoration = val ? 'line-through' : 'none';
+      label.style.color = val ? '#706050' : '';
+    }
+  }
+
+  function resetChecklist() {
+    MH_DATA.defense.checklist.forEach((_, i) => {
+      localStorage.removeItem('mhn-check-' + i);
+      const cb = document.getElementById('chk-' + i);
+      if (cb) cb.checked = false;
+      const lb = document.getElementById('chk-label-' + i);
+      if (lb) { lb.style.textDecoration = 'none'; lb.style.color = ''; }
+    });
+  }
+
+  // ── 初期化 ───────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('lastUpdated').textContent = MH_DATA.lastUpdated;
+    fetchOfficialNews();
+    buildSnsFilters();
+    renderSns();
+    renderOutbreak();
+    renderDefense();
+  });
+
+  </script>
+</body>
+</html>
