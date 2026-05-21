@@ -497,37 +497,73 @@
   // ── 公式情報：取得成功時のレンダリング ──────────
   function renderOfficialItems(items) {
     const el = document.getElementById('official-list');
-    el.innerHTML = items.map(item => `
-      <div class="mh-card" style="padding:14px;">
+    el.innerHTML = items.map((item, idx) => {
+      const hasSections = item.sections && item.sections.length > 0;
 
-        <!-- サムネイル＋タイトル行 -->
-        <div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:10px;">
-          ${item.image
-            ? `<img src="${esc(item.image)}"
-                    style="width:90px; height:64px; object-fit:cover; border-radius:8px; flex-shrink:0; background:#1a1410;"
-                    onerror="this.style.display='none'">`
+      const sectionsHtml = hasSections ? item.sections.map(s => `
+        <div style="margin-bottom:10px;">
+          ${s.heading
+            ? `<p style="font-size:12px; font-weight:700; color:#c9a227; margin-bottom:4px;">【${esc(s.heading)}】</p>`
             : ''}
-          <div style="flex:1; min-width:0;">
-            <div style="margin-bottom:6px;">${catChip(item.category)}</div>
-            <p style="font-weight:700; font-size:15px; line-height:1.4;">${esc(item.title)}</p>
+          <p style="font-size:12px; color:#c0b090; line-height:1.85;">${esc(s.body)}</p>
+        </div>`).join('') : '';
+
+      return `
+        <div class="mh-card" style="padding:14px;">
+
+          <!-- サムネイル + カテゴリ + タイトル -->
+          <div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:8px;">
+            ${item.image
+              ? `<img src="${esc(item.image)}"
+                      style="width:90px; height:64px; object-fit:cover; border-radius:8px; flex-shrink:0; background:#1a1410;"
+                      onerror="this.style.display='none'">`
+              : ''}
+            <div style="flex:1; min-width:0;">
+              <div style="margin-bottom:6px;">${catChip(item.category)}</div>
+              <p style="font-weight:700; font-size:15px; line-height:1.4;">${esc(item.title)}</p>
+            </div>
           </div>
-        </div>
 
-        <!-- 記事本文の要約 -->
-        ${item.body_summary || item.summary ? `
-          <div style="background:#1a1610; border-radius:8px; padding:10px 12px; margin-bottom:10px;">
-            <p style="font-size:13px; color:#c0b090; line-height:1.85;">
-              ${esc(item.body_summary || item.summary)}
-            </p>
-          </div>` : ''}
+          <!-- 常時表示：OGP概要文 -->
+          ${item.teaser || item.summary
+            ? `<p style="font-size:12px; color:#a09070; line-height:1.7; margin-bottom:10px;">
+                 ${esc(item.teaser || item.summary)}
+               </p>`
+            : ''}
 
-        <!-- 詳細リンク -->
-        <a href="${esc(item.url)}" target="_blank" rel="noopener"
-           style="font-size:12px; color:#c9a227; text-decoration:none;">
-          詳細を見る →
-        </a>
-      </div>
-    `).join('');
+          <!-- 要約トグル -->
+          ${hasSections ? `
+            <button onclick="toggleSummary(${idx})"
+                    id="summary-btn-${idx}"
+                    style="font-size:12px; color:#c9a227; background:#c9a22718;
+                           border:1px solid #c9a22740; border-radius:6px;
+                           padding:5px 12px; cursor:pointer; margin-bottom:0; width:100%; text-align:left;">
+              ▶ 要約を見る
+            </button>
+            <div id="summary-${idx}"
+                 style="display:none; background:#1a1610; border-radius:0 0 8px 8px;
+                        border:1px solid #c9a22730; border-top:none;
+                        padding:12px; margin-bottom:10px;">
+              ${sectionsHtml}
+            </div>
+          ` : ''}
+
+          <!-- 詳細リンク -->
+          <a href="${esc(item.url)}" target="_blank" rel="noopener"
+             style="font-size:12px; color:#c9a227; text-decoration:none;
+                    display:inline-block; margin-top:${hasSections ? '10px' : '0'};">
+            詳細を見る →
+          </a>
+        </div>`;
+    }).join('');
+  }
+
+  function toggleSummary(idx) {
+    const panel = document.getElementById('summary-' + idx);
+    const btn   = document.getElementById('summary-btn-' + idx);
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    btn.textContent = isOpen ? '▶ 要約を見る' : '▲ 閉じる';
   }
 
   // ── 公式情報：フォールバック（data.js） ─────────

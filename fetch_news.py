@@ -25,40 +25,72 @@ HEADERS = {
     'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
 }
 
-# ── 記事詳細から本文を抽出 ────────────────────────────
-def fetch_article_body(url, max_chars=280):
+# ── 記事詳細から構造化データを抽出 ──────────────────
+def fetch_article_detail(url):
+    """OGP概要 + 見出し別セクションを返す"""
+    result = {'teaser': '', 'sections': []}
     try:
         r = requests.get(url, headers=HEADERS, timeout=10)
         r.raise_for_status()
         r.encoding = 'utf-8'
         soup = BeautifulSoup(r.text, 'html.parser')
 
-        # ナビ・ヘッダー・フッターを除去
-        for tag in soup.find_all(['nav', 'header', 'footer', 'script', 'style']):
+        # OGP description（短い要約として常時表示）
+        og = (soup.find('meta', property='og:description') or
+              soup.find('meta', attrs={'name': 'description'}))
+        if og and og.get('content'):
+            result['teaser'] = og['content'].strip()
+
+        # ノイズ除去
+        for tag in soup.find_all(['nav', 'header', 'footer', 'script', 'style', 'noscript']):
             tag.decompose()
 
-        # 本文コンテナを探す（複数セレクタを順番に試す）
-        body = None
-        for sel in ['article', 'main', '[class*="content"]', '[class*="article"]', '[class*="post"]']:
-            body = soup.select_one(sel)
-            if body:
-                break
+        # 本文コンテナ
+        body = (soup.select_one('article, main, [class*="content"], [class*="article"]')
+                or soup.body)
         if not body:
-            body = soup.body
+            return result
 
-        # p タグからテキストを収集（10文字以下の断片は除外）
-        texts = [
-            ' '.join(p.get_text().split())
-            for p in (body or soup).find_all('p')
-            if len(p.get_text(strip=True)) > 10
-        ]
-        full = ' '.join(texts)
-        if not full:
-            return ''
-        return (full[:max_chars] + '…') if len(full) > max_chars else full
+        # 見出し + 段落を走査してセクション化
+        sections       = []
+        current_heading = ''
+        current_paras   = []
+
+        for el in body.find_all(['h2', 'h3', 'h4', 'p']):
+            text = ' '.join(el.get_text().split())
+            if not text:
+                continue
+            if el.name in ('h2', 'h3', 'h4'):
+                if current_paras:
+                    body_text = ' '.join(current_paras)
+                    sections.append({
+                        'heading': current_heading,
+                        'body': (body_text[:300] + '…') if len(body_text) > 300 else body_text
+                    })
+                current_heading = text
+                current_paras   = []
+            elif el.name == 'p' and len(text) > 10:
+                current_paras.append(text)
+
+        if current_paras:
+            body_text = ' '.join(current_paras)
+            sections.append({
+                'heading': current_heading,
+                'body': (body_text[:300] + '…') if len(body_text) > 300 else body_text
+            })
+
+        # 見出しがない場合は最初の段落群を1セクションにまとめる
+        if not sections:
+            texts = [' '.join(p.get_text().split())
+                     for p in body.find_all('p') if len(p.get_text(strip=True)) > 10]
+            joined = ' '.join(texts[:5])
+            if joined:
+                sections = [{'heading': '', 'body': (joined[:400] + '…') if len(joined) > 400 else joined}]
+
+        result['sections'] = sections
     except Exception as e:
         print(f'  スキップ ({e}): {url}')
-        return ''
+    return result
 
 # ── 取得 ──────────────────────────────────────────────
 print(f'取得中: {URL}')
@@ -141,7 +173,9 @@ for link in soup.find_all('a', href=True):
 print(f'各記事の詳細を取得中（{len(items)} 件）...')
 for i, item in enumerate(items):
     print(f'  [{i+1}/{len(items)}] {item["title"][:25]}...')
-    item['body_summary'] = fetch_article_body(item['url'])
+    detail = fetch_article_detail(item['url'])
+    item['teaser']   = detail['teaser']
+    item['sections'] = detail['sections']
     time.sleep(0.8)  # サーバーへの負荷軽減
 
 # ── 保存 ──────────────────────────────────────────────
