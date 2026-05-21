@@ -114,9 +114,10 @@ def fetch_article_detail(url):
         current_items   = []   # (tag, text, depth)
 
         def flush():
-            s = make_section(current_heading, current_items)
-            if s:
-                sections.append(s)
+            if current_heading:  # 見出しなし（冒頭）はティーザーと重複するためスキップ
+                s = make_section(current_heading, current_items)
+                if s:
+                    sections.append(s)
             current_items.clear()
 
         for el in body.find_all(['h2', 'h3', 'h4', 'p', 'li']):
@@ -147,17 +148,6 @@ def fetch_article_detail(url):
                 current_items.append(('li', t, depth))
 
         flush()
-
-        # 見出しなし
-        if not sections:
-            paras = [' '.join(p.get_text().split())
-                     for p in body.find_all('p') if len(p.get_text(strip=True)) > 10]
-            seen, uniq = set(), []
-            for p in paras[:6]:
-                if p not in seen:
-                    seen.add(p); uniq.append(p)
-            if uniq:
-                sections = [{'heading': '', 'body': cut_at_sentence(' '.join(uniq), 400)}]
 
         result['sections'] = sections
     except Exception as e:
