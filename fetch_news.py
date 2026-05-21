@@ -26,66 +26,109 @@ HEADERS = {
 }
 
 # ── 記事詳細から構造化データを抽出 ──────────────────
+# 省略記号なしで文末カット
+def cut_at_sentence(text, max_len):
+    if len(text) <= max_len:
+        return text
+    cut = text.rfind('。', 0, max_len)
+    return text[:cut + 1] if cut >= 0 else text[:max_len]
+
+# 期間限定クエスト・プレミアムクエスト系の見出しキーワード
+SHORT_HEADINGS = ['期間限定クエスト', 'プレミアムクエスト', 'クエスト報酬']
+# モンスター一覧系の見出しキーワード
+LIST_HEADINGS  = ['モンスター', '出現', '登場', '古龍', '変異', '亜種']
+
 def fetch_article_detail(url):
-    """OGP概要 + 見出し別セクションを返す"""
-    result = {'teaser': '', 'sections': []}
+    result = {'date': '', 'teaser': '', 'sections': []}
     try:
         r = requests.get(url, headers=HEADERS, timeout=10)
         r.raise_for_status()
         r.encoding = 'utf-8'
         soup = BeautifulSoup(r.text, 'html.parser')
 
-        # OGP description（短い要約として常時表示）
+        # 日付（article:published_time → <time> の順に探す）
+        date_meta = soup.find('meta', property='article:published_time')
+        if date_meta and date_meta.get('content'):
+            result['date'] = date_meta['content'][:10].replace('-', '/')
+        else:
+            time_el = soup.find('time')
+            if time_el:
+                dt = time_el.get('datetime', '') or time_el.get_text(strip=True)
+                result['date'] = dt[:10].replace('-', '/')
+
+        # OGP description → 100文字以内・文末で切る
         og = (soup.find('meta', property='og:description') or
               soup.find('meta', attrs={'name': 'description'}))
         if og and og.get('content'):
-            result['teaser'] = og['content'].strip()
+            result['teaser'] = cut_at_sentence(og['content'].strip(), 100)
 
         # ノイズ除去
         for tag in soup.find_all(['nav', 'header', 'footer', 'script', 'style', 'noscript']):
             tag.decompose()
 
-        # 本文コンテナ
         body = (soup.select_one('article, main, [class*="content"], [class*="article"]')
                 or soup.body)
         if not body:
             return result
 
-        # 見出し + 段落を走査してセクション化
-        sections       = []
+        # 見出し + 段落 + リスト項目を走査してセクション化
+        sections        = []
         current_heading = ''
-        current_paras   = []
+        current_items   = []
 
-        for el in body.find_all(['h2', 'h3', 'h4', 'p']):
+        def flush():
+            if not current_items:
+                return
+            # 重複除去
+            seen   = set()
+            unique = []
+            for t in current_items:
+                if t not in seen:
+                    seen.add(t)
+                    unique.append(t)
+            if not unique:
+                return
+
+            h = current_heading
+
+            # モンスター一覧系：短い項目を「・」区切りで列挙
+            is_monster_list = any(kw in h for kw in LIST_HEADINGS)
+            is_short_items  = all(len(t) <= 40 for t in unique) and len(unique) >= 2
+
+            if is_monster_list or is_short_items:
+                body_text = '・'.join(unique)
+            else:
+                joined = ' '.join(unique)
+                # クエスト系は2文以内に
+                if any(kw in h for kw in SHORT_HEADINGS):
+                    end = joined.find('。')
+                    end2 = joined.find('。', end + 1) if end >= 0 else -1
+                    body_text = joined[:end2 + 1] if end2 >= 0 else joined[:end + 1] if end >= 0 else joined[:120]
+                else:
+                    body_text = cut_at_sentence(joined, 400)
+
+            sections.append({'heading': h, 'body': body_text})
+
+        for el in body.find_all(['h2', 'h3', 'h4', 'p', 'li']):
             text = ' '.join(el.get_text().split())
-            if not text:
+            if not text or len(text) < 3:
                 continue
             if el.name in ('h2', 'h3', 'h4'):
-                if current_paras:
-                    body_text = ' '.join(current_paras)
-                    sections.append({
-                        'heading': current_heading,
-                        'body': (body_text[:300] + '…') if len(body_text) > 300 else body_text
-                    })
+                flush()
                 current_heading = text
-                current_paras   = []
-            elif el.name == 'p' and len(text) > 10:
-                current_paras.append(text)
+                current_items   = []
+            elif el.name in ('p', 'li') and len(text) > 5:
+                current_items.append(text)
 
-        if current_paras:
-            body_text = ' '.join(current_paras)
-            sections.append({
-                'heading': current_heading,
-                'body': (body_text[:300] + '…') if len(body_text) > 300 else body_text
-            })
+        flush()
 
-        # 見出しがない場合は最初の段落群を1セクションにまとめる
+        # 見出しなしの場合：最初の段落群を1セクションに
         if not sections:
-            texts = [' '.join(p.get_text().split())
-                     for p in body.find_all('p') if len(p.get_text(strip=True)) > 10]
+            texts  = [' '.join(p.get_text().split())
+                      for p in body.find_all('p') if len(p.get_text(strip=True)) > 10]
             joined = ' '.join(texts[:5])
             if joined:
-                sections = [{'heading': '', 'body': (joined[:400] + '…') if len(joined) > 400 else joined}]
+                sections = [{'heading': '', 'body': cut_at_sentence(joined, 400)}]
 
         result['sections'] = sections
     except Exception as e:
@@ -174,6 +217,7 @@ print(f'各記事の詳細を取得中（{len(items)} 件）...')
 for i, item in enumerate(items):
     print(f'  [{i+1}/{len(items)}] {item["title"][:25]}...')
     detail = fetch_article_detail(item['url'])
+    item['date']     = detail['date']
     item['teaser']   = detail['teaser']
     item['sections'] = detail['sections']
     time.sleep(0.8)  # サーバーへの負荷軽減
