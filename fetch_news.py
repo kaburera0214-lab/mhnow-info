@@ -204,9 +204,9 @@ for link in soup.find_all('a', href=True):
     if not title or len(title) < 4:
         continue
 
-    # 概要
+    # 概要（100文字・文末カット）
     p_el    = container.find('p')
-    summary = ' '.join(p_el.get_text().split()) if p_el else ''
+    summary = cut_at_sentence(' '.join(p_el.get_text().split()), 100) if p_el else ''
 
     # カテゴリ
     span_el  = container.find('span')
