@@ -175,6 +175,36 @@
       scrollbar-width: none;
     }
     .weapon-scroll::-webkit-scrollbar { display: none; }
+
+    /* ── チャンネルタブ ──────────────────────────── */
+    .ch-tab-row {
+      display: flex;
+      overflow-x: auto;
+      gap: 0;
+      border-bottom: 1px solid #3d3420;
+      margin-bottom: 12px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .ch-tab-row::-webkit-scrollbar { display: none; }
+    .ch-tab {
+      font-size: 12px;
+      padding: 7px 14px;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #a09070;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .ch-tab.active {
+      color: #c9a227;
+      border-bottom-color: #c9a227;
+      font-weight: 700;
+    }
+    .ch-tab:hover { color: #c9a227; }
     .sns-sort-select {
       background: #1a1610;
       border: 1px solid #3d3420;
@@ -230,7 +260,7 @@
       </button>
       <button class="tab-btn" onclick="switchTab('outbreak', this)">
         <div><i class="fas fa-dragon"></i></div>
-        <div>大量発生</div>
+        <div>大量出現</div>
       </button>
       <button class="tab-btn" onclick="switchTab('defense', this)">
         <div><i class="fas fa-tower-observation"></i></div>
@@ -269,6 +299,9 @@
       </div>
       <p class="muted" style="font-size:12px; margin-top:2px; margin-bottom:12px;">さーどら・怠惰な人・やぎなまず などから自動取得</p>
 
+      <!-- チャンネルタブ -->
+      <div id="sns-channel-tabs" class="ch-tab-row"></div>
+
       <!-- ソート + 用途フィルター -->
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px;">
         <div id="sns-context-filters" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
@@ -282,7 +315,7 @@
       <!-- 武器種フィルター（横スクロール） -->
       <div id="sns-weapon-filters" class="weapon-scroll" style="margin-bottom:12px;"></div>
 
-      <!-- モンスター連携バナー（大量発生タブから飛んできたとき表示） -->
+      <!-- モンスター連携バナー（大量出現タブから飛んできたとき表示） -->
       <div id="sns-monster-banner" style="display:none; align-items:center; justify-content:space-between;
            background:#1a1610; border:1px solid #c9a22740; border-radius:8px;
            padding:8px 12px; margin-bottom:10px;">
@@ -294,9 +327,9 @@
       <div id="sns-list" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
 
-    <!-- ─── 大量発生 ─── -->
+    <!-- ─── 大量出現 ─── -->
     <div id="tab-outbreak" class="tab-content">
-      <h2 class="section-title gold-text">大量発生イベント</h2>
+      <h2 class="section-title gold-text">大量出現イベント</h2>
       <p class="muted" style="font-size:12px; margin-top:-8px; margin-bottom:10px;">開催中・近日開催のイベントと推奨装備</p>
       <div id="outbreak-list" style="display:flex; flex-direction:column; gap:14px;"></div>
     </div>
@@ -642,10 +675,31 @@
                        'ランス','ガンランス','スラッシュアックス','チャージアックス',
                        '操虫棍','弓','ライトボウガン','ヘビィボウガン'];
 
+  let snsChannelFilter = 'all';
   let snsWeaponFilter  = 'all';
   let snsContextFilter = 'all';
   let snsMonsterFilter = '';
   let snsSort          = 'newest';
+
+  function buildSnsChannelTabs() {
+    const items   = snsItems !== null ? snsItems : MH_DATA.sns;
+    const authors = [...new Set(items.map(i => i.author))];
+    const el      = document.getElementById('sns-channel-tabs');
+    const all     = `<button class="ch-tab${snsChannelFilter === 'all' ? ' active' : ''}"
+                       data-ch="all" onclick="setSnsChannel(this)">すべて</button>`;
+    const tabs    = authors.map(a =>
+      `<button class="ch-tab${snsChannelFilter === a ? ' active' : ''}"
+         data-ch="${esc(a)}" onclick="setSnsChannel(this)">${esc(a)}</button>`
+    ).join('');
+    el.innerHTML = all + tabs;
+  }
+
+  function setSnsChannel(btn) {
+    snsChannelFilter = btn.dataset.ch;
+    document.querySelectorAll('.ch-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSns();
+  }
 
   function buildSnsFilters() {
     // 武器種ピル
@@ -657,7 +711,7 @@
       }).join('');
 
     // 用途フィルター
-    const ctxList = [['all','すべて'],['大量発生','🔥 大量発生'],['拠点要撃戦','🏰 拠点要撃戦']];
+    const ctxList = [['all','すべて'],['大量出現','🔥 大量出現'],['拠点要撃戦','🏰 拠点要撃戦']];
     document.getElementById('sns-context-filters').innerHTML =
       ctxList.map(([val, label]) =>
         `<button class="filter-btn${val === snsContextFilter ? ' active' : ''}"
@@ -686,7 +740,7 @@
     renderSns();
   }
 
-  // 大量発生タブから呼ばれる
+  // 大量出現タブから呼ばれる
   function switchToSnsWithMonster(monsterName) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-sns').classList.add('active');
@@ -719,6 +773,9 @@
   function renderSns() {
     let items = [...(snsItems !== null ? snsItems : MH_DATA.sns)];
 
+    if (snsChannelFilter !== 'all')
+      items = items.filter(i => i.author === snsChannelFilter);
+
     if (snsWeaponFilter !== 'all')
       items = items.filter(i => i.weapon === snsWeaponFilter);
 
@@ -739,7 +796,7 @@
 
     const diffColor = { '初心者向け':'#2ecc71', '中級者向け':'#f39c12', '上級者向け':'#e74c3c' };
     const ctxStyle  = {
-      '大量発生':   'background:#3d1a00; color:#ff9040; border:1px solid #7a3a10;',
+      '大量出現':   'background:#3d1a00; color:#ff9040; border:1px solid #7a3a10;',
       '拠点要撃戦': 'background:#0a1a3d; color:#7090ff; border:1px solid #1a40a0;',
     };
 
@@ -838,7 +895,7 @@
     }).join('');
   }
 
-  // ── 大量発生 レンダリング ────────────────────────
+  // ── 大量出現 レンダリング ────────────────────────
   function renderOutbreak() {
     const el = document.getElementById('outbreak-list');
     const sorted = [...MH_DATA.outbreak].sort((a, b) => b.isActive - a.isActive);
@@ -1064,6 +1121,7 @@
     } catch (e) {
       snsItems = MH_DATA.sns;     // フォールバック
     }
+    buildSnsChannelTabs();
     buildSnsFilters();
     renderSns();
   }

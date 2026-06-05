@@ -24,8 +24,8 @@ const MH_DATA = {
       id: 1,
       date: "2026-05-20",
       category: "イベント",
-      title: "大量発生ウィーク：砂漠の王者",
-      summary: "ジュラトドス・バギィなど砂漠系モンスターが大量発生。限定素材でレア武器が作成可能。期間中はフィールド密度2倍。",
+      title: "大量出現ウィーク：砂漠の王者",
+      summary: "ジュラトドス・バギィなど砂漠系モンスターが大量出現。限定素材でレア武器が作成可能。期間中はフィールド密度2倍。",
       url: "https://www.monsterhunternow.com/ja-JP/news",
       isNew: true
     },
@@ -64,7 +64,7 @@ const MH_DATA = {
   //  【必須フィールド】
   //  source     : "YouTube" / "X"
   //  weapon     : 武器種（例: "太刀" "双剣" "弓" など）
-  //  context    : 用途。["大量発生"] / ["拠点要撃戦"] / 両方 / []
+  //  context    : 用途。["大量出現"] / ["拠点要撃戦"] / 両方 / []
   //
   //  【任意フィールド】
   //  youtubeId      : YouTube動画ID（URLの ?v= 以降）→ サイト内に埋め込み再生
@@ -72,7 +72,7 @@ const MH_DATA = {
   //  postedAt       : 投稿日 "YYYY-MM-DD"（新着順ソートに使用）
   //  viewCount      : 再生数（数値）
   //  subscriberCount: 登録者数／フォロワー数（数値）
-  //  targetMonsters : 対応モンスター名の配列（大量発生タブの連携に使用）
+  //  targetMonsters : 対応モンスター名の配列（大量出現タブの連携に使用）
   //  weaponElement  : 属性（例: "水" "なし（属性対応）"）
   //  difficulty     : "初心者向け" / "中級者向け" / "上級者向け"
   //  armorSkills    : スキル名の配列
@@ -93,7 +93,7 @@ const MH_DATA = {
       weapon: "太刀",         // ← 武器種を変更
       weaponElement: "なし",
       targetMonsters: [],     // ← 例: ["リオレウス", "ベリオロス"]
-      context: [],            // ← 例: ["大量発生"] or ["拠点要撃戦"] or 両方
+      context: [],            // ← 例: ["大量出現"] or ["拠点要撃戦"] or 両方
       difficulty: "中級者向け",
       armorSkills: [],        // ← 例: ["弱点特攻Lv3", "見切りLv5"]
       notes: "メモをここに入力"
@@ -151,7 +151,7 @@ const MH_DATA = {
     //   weapon: "片手剣",
     //   weaponElement: "水",
     //   targetMonsters: ["リオレウス"],
-    //   context: ["大量発生"],
+    //   context: ["大量出現"],
     //   difficulty: "初心者向け",
     //   armorSkills: ["弱点特攻Lv3", "体力増強Lv3"],
     //   notes: "装備のポイント"
@@ -159,7 +159,7 @@ const MH_DATA = {
   ],
 
   // ==============================================================
-  //  大量発生イベントセクション
+  //  大量出現イベントセクション
   //  element: "火" / "水" / "雷" / "氷" / "龍" / "なし"
   //  weaknesses: 0=なし 1=弱点(★) 2=特効(★★)
   //  isActive: true=開催中, false=近日開催

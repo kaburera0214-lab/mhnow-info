@@ -40,8 +40,8 @@ def extract_weapon(title):
 
 def extract_context(title):
     ctx = []
-    if '大量発生' in title:
-        ctx.append('大量発生')
+    if '大量出現' in title:
+        ctx.append('大量出現')
     if '拠点' in title or '要撃' in title:
         ctx.append('拠点要撃戦')
     return ctx
