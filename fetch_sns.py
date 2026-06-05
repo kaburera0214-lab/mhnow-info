@@ -14,12 +14,14 @@ OUTPUT  = 'sns.json'
 MAX_PER_CHANNEL = 6   # 1チャンネルあたり最大取得数
 
 # 対象チャンネル
+# id: チャンネルID（UC〜）/ handle: @ハンドル名（どちらか一方を指定）
 CHANNELS = [
-    {'id': 'UCFCgvaVNYdiZqAU56AraKjg', 'name': 'さーどら'},
-    {'id': 'UCTykXxcnqEZpzyzs5-vknNA', 'name': '怠惰な人'},
-    {'id': 'UCAmXPLf3OGaeZe-XTfF-WcQ', 'name': 'やぎなまず'},
-    {'id': 'UCberqv_qig4FJLjcB6hP9NA', 'name': 'アニート'},
-    {'id': 'UCA_vA8Zn5b7SxjXc7W26lmA', 'name': 'もぐたんGAME'},
+    {'id':     'UCFCgvaVNYdiZqAU56AraKjg', 'name': 'さーどら'},
+    {'id':     'UCTykXxcnqEZpzyzs5-vknNA', 'name': '怠惰な人'},
+    {'id':     'UCAmXPLf3OGaeZe-XTfF-WcQ', 'name': 'やぎなまず'},
+    {'id':     'UCberqv_qig4FJLjcB6hP9NA', 'name': 'アニート'},
+    {'handle': 'MogtanGameYT',             'name': 'もぐたんGAME'},
+    {'handle': 'おだじまのゲームし太郎ch',  'name': 'おだじまのゲームし太郎ch'},
 ]
 
 BASE = 'https://www.googleapis.com/youtube/v3'
@@ -43,8 +45,26 @@ def extract_context(title):
         ctx.append('拠点要撃戦')
     return ctx
 
+def resolve_handle(handle):
+    """YouTube ハンドル（@xxxx）をチャンネルIDに変換"""
+    r = requests.get(f'{BASE}/channels', params={
+        'part':      'id',
+        'forHandle': handle,
+        'key':       API_KEY,
+    }, timeout=10)
+    r.raise_for_status()
+    items = r.json().get('items', [])
+    return items[0]['id'] if items else None
+
 def fetch_channel(channel):
-    ch_id   = channel['id']
+    # ハンドル指定の場合はIDに変換
+    if 'handle' in channel:
+        ch_id = resolve_handle(channel['handle'])
+        if not ch_id:
+            print(f'    → ハンドル解決失敗: {channel["handle"]}')
+            return [], 0
+    else:
+        ch_id = channel['id']
     ch_name = channel['name']
     print(f'  取得中: {ch_name}')
 
