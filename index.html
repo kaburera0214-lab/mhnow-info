@@ -263,8 +263,11 @@
 
     <!-- ─── SNS装備 ─── -->
     <div id="tab-sns" class="tab-content">
-      <h2 class="section-title gold-text">SNS装備紹介</h2>
-      <p class="muted" style="font-size:12px; margin-top:-8px; margin-bottom:12px;">さーどら・怠惰な人・やぎなまず などから厳選</p>
+      <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+        <h2 class="section-title gold-text" style="margin-bottom:0;">SNS装備紹介</h2>
+        <span id="sns-source-label" class="muted" style="font-size:11px;"></span>
+      </div>
+      <p class="muted" style="font-size:12px; margin-top:2px; margin-bottom:12px;">さーどら・怠惰な人・やぎなまず などから自動取得</p>
 
       <!-- ソート + 用途フィルター -->
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px;">
@@ -714,7 +717,7 @@
   }
 
   function renderSns() {
-    let items = [...MH_DATA.sns];
+    let items = [...(snsItems !== null ? snsItems : MH_DATA.sns)];
 
     if (snsWeaponFilter !== 'all')
       items = items.filter(i => i.weapon === snsWeaponFilter);
@@ -1040,12 +1043,36 @@
     });
   }
 
+  // ── SNS動画: sns.json から読み込み ───────────────
+  let snsItems = null;   // null = 未取得、[] = 取得済みだが0件
+
+  async function fetchSnsData() {
+    try {
+      const res = await fetch('./sns.json?t=' + Date.now());
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.items && json.items.length > 0) {
+        snsItems = json.items;
+        const label = document.getElementById('sns-source-label');
+        if (label) {
+          label.textContent = `✓ 自動取得データ · ${json.updated}`;
+          label.style.color = '#27ae60';
+        }
+      } else {
+        snsItems = MH_DATA.sns;   // フォールバック
+      }
+    } catch (e) {
+      snsItems = MH_DATA.sns;     // フォールバック
+    }
+    buildSnsFilters();
+    renderSns();
+  }
+
   // ── 初期化 ───────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('lastUpdated').textContent = MH_DATA.lastUpdated;
     fetchOfficialNews();
-    buildSnsFilters();
-    renderSns();
+    fetchSnsData();   // sns.json を非同期取得 → buildSnsFilters + renderSns を内部で呼ぶ
     renderOutbreak();
     renderDefense();
   });

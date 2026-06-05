@@ -1,0 +1,37 @@
+name: SNS動画自動取得
+
+on:
+  schedule:
+    - cron: '0 3,15 * * *'   # 毎日 3時・15時（UTC）＝ JST 12時・0時
+  workflow_dispatch:           # GitHub 画面から手動実行も可能
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python をセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存パッケージをインストール
+        run: pip install requests
+
+      - name: YouTube動画を取得して sns.json に保存
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python fetch_sns.py
+
+      - name: sns.json をコミット・プッシュ
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sns.json
+          git diff --staged --quiet || git commit -m "chore: SNS動画更新 $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
