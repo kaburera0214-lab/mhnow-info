@@ -22,6 +22,7 @@ CHANNELS = [
     {'id':     'UCberqv_qig4FJLjcB6hP9NA', 'name': 'アニート'},
     {'handle': 'MogtanGameYT',             'name': 'もぐたんGAME'},
     {'handle': 'おだじまのゲームし太郎ch',  'name': 'おだじまのゲームし太郎ch'},
+    {'handle': 'shizukumochi',             'name': 'しずくもち'},
 ]
 
 BASE = 'https://www.googleapis.com/youtube/v3'
