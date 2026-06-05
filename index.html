@@ -176,22 +176,22 @@
     }
     .weapon-scroll::-webkit-scrollbar { display: none; }
 
-    /* ── チャンネルタブ ──────────────────────────── */
+    /* ── チャンネルフィルター ────────────────────── */
     .ch-tab-row {
       display: flex;
       overflow-x: auto;
-      gap: 0;
-      border-bottom: 1px solid #3d3420;
-      margin-bottom: 12px;
+      gap: 6px;
+      margin-bottom: 10px;
+      padding-bottom: 2px;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
     }
     .ch-tab-row::-webkit-scrollbar { display: none; }
     .ch-tab {
       font-size: 12px;
-      padding: 7px 14px;
-      border: none;
-      border-bottom: 2px solid transparent;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid #3d3420;
       color: #a09070;
       background: transparent;
       cursor: pointer;
@@ -199,12 +199,12 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .ch-tab.active {
-      color: #c9a227;
-      border-bottom-color: #c9a227;
-      font-weight: 700;
+    .ch-tab.active,
+    .ch-tab:hover {
+      border-color: #e8b030;
+      color: #e8b030;
+      background: #e8b03018;
     }
-    .ch-tab:hover { color: #c9a227; }
     .sns-sort-select {
       background: #1a1610;
       border: 1px solid #3d3420;
@@ -299,8 +299,11 @@
       </div>
       <p class="muted" style="font-size:12px; margin-top:2px; margin-bottom:12px;">さーどら・怠惰な人・やぎなまず などから自動取得</p>
 
-      <!-- チャンネルタブ -->
-      <div id="sns-channel-tabs" class="ch-tab-row"></div>
+      <!-- チャンネルフィルター -->
+      <div style="margin-bottom:10px;">
+        <p class="muted" style="font-size:11px; margin-bottom:5px;">チャンネル</p>
+        <div id="sns-channel-tabs" class="ch-tab-row"></div>
+      </div>
 
       <!-- ソート + 用途フィルター -->
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px;">
@@ -312,8 +315,11 @@
         </select>
       </div>
 
-      <!-- 武器種フィルター（横スクロール） -->
-      <div id="sns-weapon-filters" class="weapon-scroll" style="margin-bottom:12px;"></div>
+      <!-- 武器種フィルター（折り返し2行） -->
+      <div style="margin-bottom:12px;">
+        <p class="muted" style="font-size:11px; margin-bottom:5px;">武器種</p>
+        <div id="sns-weapon-filters" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+      </div>
 
       <!-- モンスター連携バナー（大量出現タブから飛んできたとき表示） -->
       <div id="sns-monster-banner" style="display:none; align-items:center; justify-content:space-between;

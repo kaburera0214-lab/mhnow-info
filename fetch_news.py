@@ -149,6 +149,17 @@ def fetch_article_detail(url):
 
         flush()
 
+        # 見出しありセクションが0件の場合：本文の先頭段落から要約を生成
+        if not sections:
+            paras = [' '.join(p.get_text().split())
+                     for p in body.find_all('p') if len(p.get_text(strip=True)) > 10]
+            seen2, uniq = set(), []
+            for p in paras[:6]:
+                if p not in seen2:
+                    seen2.add(p); uniq.append(p)
+            if uniq:
+                sections = [{'heading': '', 'body': cut_at_sentence(' '.join(uniq), 300)}]
+
         result['sections'] = sections
     except Exception as e:
         print(f'  スキップ ({e}): {url}')
