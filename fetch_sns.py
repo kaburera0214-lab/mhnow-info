@@ -18,6 +18,8 @@ CHANNELS = [
     {'id': 'UCFCgvaVNYdiZqAU56AraKjg', 'name': 'さーどら'},
     {'id': 'UCTykXxcnqEZpzyzs5-vknNA', 'name': '怠惰な人'},
     {'id': 'UCAmXPLf3OGaeZe-XTfF-WcQ', 'name': 'やぎなまず'},
+    {'id': 'UCberqv_qig4FJLjcB6hP9NA', 'name': 'アニート'},
+    {'id': 'UCA_vA8Zn5b7SxjXc7W26lmA', 'name': 'もぐたんGAME'},
 ]
 
 BASE = 'https://www.googleapis.com/youtube/v3'
