@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 API_KEY = os.environ.get('YOUTUBE_API_KEY', '')
 OUTPUT  = 'sns.json'
-MAX_PER_CHANNEL = 6   # 1チャンネルあたり最大取得数
+MAX_PER_CHANNEL = 15  # 1チャンネルあたり最大取得数
 
 # 対象チャンネル
 # id: チャンネルID（UC〜）/ handle: @ハンドル名（どちらか一方を指定）
@@ -69,11 +69,10 @@ def fetch_channel(channel):
     ch_name = channel['name']
     print(f'  取得中: {ch_name}')
 
-    # ① 最新動画を検索（モンハンNow 関連）
+    # ① 最新動画を取得（専用チャンネルなのでキーワードフィルターなし・新着順）
     search_res = requests.get(f'{BASE}/search', params={
         'part':      'snippet',
         'channelId': ch_id,
-        'q':         'モンハンNow OR モンハンNOW OR MHNow',
         'maxResults': MAX_PER_CHANNEL,
         'order':     'date',
         'type':      'video',
