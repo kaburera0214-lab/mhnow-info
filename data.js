@@ -60,68 +60,102 @@ const MH_DATA = {
 
   // ==============================================================
   //  SNS装備紹介セクション
-  //  source: "YouTube" / "X" / "その他"
-  //  youtubeId: YouTube動画IDを入力すると埋め込み表示
-  //             （例 https://youtu.be/dQw4w9WgXcQ → "dQw4w9WgXcQ"）
-  //  difficulty: "初心者向け" / "中級者向け" / "上級者向け"
+  //
+  //  【必須フィールド】
+  //  source     : "YouTube" / "X"
+  //  weapon     : 武器種（例: "太刀" "双剣" "弓" など）
+  //  context    : 用途。["大量発生"] / ["拠点要撃戦"] / 両方 / []
+  //
+  //  【任意フィールド】
+  //  youtubeId      : YouTube動画ID（URLの ?v= 以降）→ サイト内に埋め込み再生
+  //                   例) https://youtu.be/AbCdEfGhIjK → "AbCdEfGhIjK"
+  //  postedAt       : 投稿日 "YYYY-MM-DD"（新着順ソートに使用）
+  //  viewCount      : 再生数（数値）
+  //  subscriberCount: 登録者数／フォロワー数（数値）
+  //  targetMonsters : 対応モンスター名の配列（大量発生タブの連携に使用）
+  //  weaponElement  : 属性（例: "水" "なし（属性対応）"）
+  //  difficulty     : "初心者向け" / "中級者向け" / "上級者向け"
+  //  armorSkills    : スキル名の配列
+  //  notes          : ひとことメモ（装備のポイント）
   // ==============================================================
   sns: [
+    // ─── さーどら ────────────────────────────────────────────
     {
       id: 1,
-      title: "【操虫棍】全属性対応！汎用ビルド完全解説",
+      title: "動画タイトルをここに入力",
       source: "YouTube",
-      author: "MHNow攻略チャンネル",
-      url: "https://www.youtube.com/watch?v=example1",
-      youtubeId: "",
-      weapon: "操虫棍",
+      author: "さーどら",
+      url: "https://www.youtube.com/@sadora_mhnow",
+      youtubeId: "",          // ← YouTube動画IDをここに貼る
+      postedAt: "2026-05-01",
+      viewCount: 0,
+      subscriberCount: 0,
+      weapon: "太刀",         // ← 武器種を変更
       weaponElement: "なし",
+      targetMonsters: [],     // ← 例: ["リオレウス", "ベリオロス"]
+      context: [],            // ← 例: ["大量発生"] or ["拠点要撃戦"] or 両方
       difficulty: "中級者向け",
-      armorSkills: ["弱点特攻Lv3", "属性攻撃強化Lv5", "連撃Lv3", "体力増強Lv3"],
-      tags: ["汎用", "属性対応"],
-      notes: "猟虫は蒼赤系がおすすめ。属性武器を複数用意して持ち替えると属性ダメージがさらにUP。猟虫バフを常に維持することが火力の鍵。"
+      armorSkills: [],        // ← 例: ["弱点特攻Lv3", "見切りLv5"]
+      notes: "メモをここに入力"
     },
+    // ─── 怠惰な人 ────────────────────────────────────────────
     {
       id: 2,
-      title: "【大剣】リオレウス特化 溜め斬り最大火力ビルド",
-      source: "X",
-      author: "@MHNow_DaikenPro",
-      url: "https://x.com/example",
+      title: "動画タイトルをここに入力",
+      source: "YouTube",
+      author: "怠惰な人",
+      url: "https://www.youtube.com/@taida_mhnow",
       youtubeId: "",
-      weapon: "大剣",
-      weaponElement: "水",
-      difficulty: "上級者向け",
-      armorSkills: ["集中Lv3", "弱点特攻Lv3", "超会心Lv3", "耐熱Lv2"],
-      tags: ["高火力", "リオレウス対策"],
-      notes: "真溜め斬りのタイミングが命。飛び上がり直後の着地に合わせて溜めを開始すると安定してヒットする。尻尾部位狙いで素材効率UP。"
+      postedAt: "2026-05-01",
+      viewCount: 0,
+      subscriberCount: 0,
+      weapon: "双剣",
+      weaponElement: "なし",
+      targetMonsters: [],
+      context: [],
+      difficulty: "初心者向け",
+      armorSkills: [],
+      notes: "メモをここに入力"
     },
+    // ─── やぎなまず ──────────────────────────────────────────
     {
       id: 3,
-      title: "【ランス】初心者でも死なない！防御特化ビルド",
+      title: "動画タイトルをここに入力",
       source: "YouTube",
-      author: "らくらくハンター",
-      url: "https://www.youtube.com/watch?v=example2",
+      author: "やぎなまず",
+      url: "https://www.youtube.com/@yaginamazu",
       youtubeId: "",
-      weapon: "ランス",
+      postedAt: "2026-05-01",
+      viewCount: 0,
+      subscriberCount: 0,
+      weapon: "弓",
       weaponElement: "なし",
-      difficulty: "初心者向け",
-      armorSkills: ["ガード強化Lv3", "体力増強Lv3", "不屈Lv1", "スタミナ急速回復Lv2"],
-      tags: ["初心者向け", "安全重視", "拠点要撃向け"],
-      notes: "ガード性能を最大まで積むと大半の攻撃をガードできる。回復薬との併用で長期戦を安定してこなせる。拠点要撃戦のサポート役にも最適。"
-    },
-    {
-      id: 4,
-      title: "【双剣】属性4本持ち！汎用最速狩りビルド",
-      source: "X",
-      author: "@SousouMaster_MHN",
-      url: "https://x.com/example2",
-      youtubeId: "",
-      weapon: "双剣",
-      weaponElement: "火・水・雷・氷",
+      targetMonsters: [],
+      context: [],
       difficulty: "中級者向け",
-      armorSkills: ["属性攻撃強化Lv5", "回避性能Lv3", "スタミナ急速回復Lv3", "体力増強Lv2"],
-      tags: ["速攻", "大量発生向け", "汎用"],
-      notes: "属性4本持ちが基本。鬼人化中は鬼人強化が乗るのでスタミナ管理が重要。大量発生時の周回速度は全武器でもトップクラス。"
+      armorSkills: [],
+      notes: "メモをここに入力"
     }
+    // ─── 追加テンプレート ─────────────────────────────────────
+    // 新しい動画を追加するときは下をコピーして使ってください
+    // ,{
+    //   id: 4,
+    //   title: "動画タイトル",
+    //   source: "YouTube",        // "YouTube" か "X"
+    //   author: "チャンネル名",
+    //   url: "https://...",
+    //   youtubeId: "",            // YouTube動画ID
+    //   postedAt: "2026-06-01",
+    //   viewCount: 0,
+    //   subscriberCount: 0,
+    //   weapon: "片手剣",
+    //   weaponElement: "水",
+    //   targetMonsters: ["リオレウス"],
+    //   context: ["大量発生"],
+    //   difficulty: "初心者向け",
+    //   armorSkills: ["弱点特攻Lv3", "体力増強Lv3"],
+    //   notes: "装備のポイント"
+    // }
   ],
 
   // ==============================================================

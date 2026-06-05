@@ -158,11 +158,32 @@
       background: transparent;
       cursor: pointer;
       transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .filter-btn.active,
     .filter-btn:hover {
       border-color: #c9a227;
       color: #c9a227;
+    }
+    .weapon-scroll {
+      display: flex;
+      overflow-x: auto;
+      gap: 6px;
+      padding-bottom: 6px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .weapon-scroll::-webkit-scrollbar { display: none; }
+    .sns-sort-select {
+      background: #1a1610;
+      border: 1px solid #3d3420;
+      color: #c9a227;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
     }
 
     /* ── 星評価 ───────────────────────────────────── */
@@ -243,8 +264,30 @@
     <!-- ─── SNS装備 ─── -->
     <div id="tab-sns" class="tab-content">
       <h2 class="section-title gold-text">SNS装備紹介</h2>
-      <p class="muted" style="font-size:12px; margin-top:-8px; margin-bottom:10px;">X・YouTubeから厳選した装備・ビルド</p>
-      <div id="sns-filters" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;"></div>
+      <p class="muted" style="font-size:12px; margin-top:-8px; margin-bottom:12px;">さーどら・怠惰な人・やぎなまず などから厳選</p>
+
+      <!-- ソート + 用途フィルター -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px;">
+        <div id="sns-context-filters" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+        <select id="sns-sort" class="sns-sort-select" onchange="setSnsSort(this.value)">
+          <option value="newest">新着順</option>
+          <option value="views">再生数順</option>
+          <option value="subs">登録者数順</option>
+        </select>
+      </div>
+
+      <!-- 武器種フィルター（横スクロール） -->
+      <div id="sns-weapon-filters" class="weapon-scroll" style="margin-bottom:12px;"></div>
+
+      <!-- モンスター連携バナー（大量発生タブから飛んできたとき表示） -->
+      <div id="sns-monster-banner" style="display:none; align-items:center; justify-content:space-between;
+           background:#1a1610; border:1px solid #c9a22740; border-radius:8px;
+           padding:8px 12px; margin-bottom:10px;">
+        <span id="sns-monster-label" style="font-size:12px; color:#c9a227;"></span>
+        <button onclick="clearMonsterFilter()"
+                style="font-size:11px; color:#a09070; background:none; border:none; cursor:pointer;">✕ 解除</button>
+      </div>
+
       <div id="sns-list" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
 
@@ -592,85 +635,204 @@
   }
 
   // ── SNS装備 レンダリング ─────────────────────────
-  let snsFilter = 'all';
+  const SNS_WEAPONS = ['すべて','大剣','太刀','片手剣','双剣','ハンマー',
+                       'ランス','ガンランス','スラッシュアックス','チャージアックス',
+                       '操虫棍','弓','ライトボウガン','ヘビィボウガン'];
+
+  let snsWeaponFilter  = 'all';
+  let snsContextFilter = 'all';
+  let snsMonsterFilter = '';
+  let snsSort          = 'newest';
 
   function buildSnsFilters() {
-    const filters = ['all', 'YouTube', 'X', '初心者向け', '汎用', '高火力'];
-    const labels  = { all: 'すべて', YouTube: 'YouTube', X: 'X(Twitter)', '初心者向け': '初心者向け', '汎用': '汎用', '高火力': '高火力' };
-    const el = document.getElementById('sns-filters');
-    el.innerHTML = filters.map(f =>
-      `<button class="filter-btn${f === 'all' ? ' active' : ''}" onclick="setSnsFilter('${f}', this)">${labels[f] || f}</button>`
-    ).join('');
+    // 武器種ピル
+    document.getElementById('sns-weapon-filters').innerHTML =
+      SNS_WEAPONS.map((w, i) => {
+        const val = i === 0 ? 'all' : w;
+        return `<button class="filter-btn${val === snsWeaponFilter ? ' active' : ''}"
+                  onclick="setSnsWeapon('${val}',this)">${w}</button>`;
+      }).join('');
+
+    // 用途フィルター
+    const ctxList = [['all','すべて'],['大量発生','🔥 大量発生'],['拠点要撃戦','🏰 拠点要撃戦']];
+    document.getElementById('sns-context-filters').innerHTML =
+      ctxList.map(([val, label]) =>
+        `<button class="filter-btn${val === snsContextFilter ? ' active' : ''}"
+           onclick="setSnsContext('${val}',this)">${label}</button>`
+      ).join('');
   }
 
-  function setSnsFilter(f, btn) {
-    snsFilter = f;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  function setSnsWeapon(val, btn) {
+    snsWeaponFilter = val;
+    document.querySelectorAll('#sns-weapon-filters .filter-btn')
+            .forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderSns();
   }
 
+  function setSnsContext(val, btn) {
+    snsContextFilter = val;
+    document.querySelectorAll('#sns-context-filters .filter-btn')
+            .forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSns();
+  }
+
+  function setSnsSort(val) {
+    snsSort = val;
+    renderSns();
+  }
+
+  // 大量発生タブから呼ばれる
+  function switchToSnsWithMonster(monsterName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-sns').classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent.includes('SNS'));
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    snsMonsterFilter = monsterName;
+    const banner = document.getElementById('sns-monster-banner');
+    banner.style.display = 'flex';
+    document.getElementById('sns-monster-label').textContent =
+      `🔍 「${monsterName}」対応の装備を表示中`;
+    renderSns();
+  }
+
+  function clearMonsterFilter() {
+    snsMonsterFilter = '';
+    document.getElementById('sns-monster-banner').style.display = 'none';
+    renderSns();
+  }
+
+  // 数値を "12.3万" 形式に整形
+  function fmtNum(n) {
+    if (!n || n === 0) return '';
+    if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + '万';
+    if (n >= 1000)  return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    return String(n);
+  }
+
   function renderSns() {
+    let items = [...MH_DATA.sns];
+
+    if (snsWeaponFilter !== 'all')
+      items = items.filter(i => i.weapon === snsWeaponFilter);
+
+    if (snsContextFilter !== 'all')
+      items = items.filter(i => i.context && i.context.includes(snsContextFilter));
+
+    if (snsMonsterFilter)
+      items = items.filter(i =>
+        i.targetMonsters && i.targetMonsters.some(m =>
+          m.includes(snsMonsterFilter) || snsMonsterFilter.includes(m)));
+
+    if (snsSort === 'newest')
+      items.sort((a, b) => (b.postedAt || '').localeCompare(a.postedAt || ''));
+    else if (snsSort === 'views')
+      items.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+    else if (snsSort === 'subs')
+      items.sort((a, b) => (b.subscriberCount || 0) - (a.subscriberCount || 0));
+
+    const diffColor = { '初心者向け':'#2ecc71', '中級者向け':'#f39c12', '上級者向け':'#e74c3c' };
+    const ctxStyle  = {
+      '大量発生':   'background:#3d1a00; color:#ff9040; border:1px solid #7a3a10;',
+      '拠点要撃戦': 'background:#0a1a3d; color:#7090ff; border:1px solid #1a40a0;',
+    };
+
     const el = document.getElementById('sns-list');
-    let items = MH_DATA.sns;
-    if (snsFilter !== 'all') {
-      items = items.filter(i => i.source === snsFilter || i.tags.includes(snsFilter) || i.difficulty === snsFilter);
+    if (!items.length) {
+      el.innerHTML = '<p class="muted" style="text-align:center; padding:32px;">該当する装備紹介がありません</p>';
+      return;
     }
 
-    const diffColor = { '初心者向け': '#2ecc71', '中級者向け': '#f39c12', '上級者向け': '#e74c3c' };
-
     el.innerHTML = items.map(item => {
-      const embed = item.youtubeId
-        ? `<div style="margin-top:12px; border-radius:10px; overflow:hidden; aspect-ratio:16/9;">
-             <iframe style="width:100%; height:100%;"
-               src="https://www.youtube.com/embed/${esc(item.youtubeId)}"
-               frameborder="0" allowfullscreen loading="lazy"></iframe>
-           </div>`
-        : '';
+      const views = fmtNum(item.viewCount);
+      const subs  = fmtNum(item.subscriberCount);
+
+      const statsHtml = (views || subs) ? `
+        <div style="display:flex; gap:10px; margin-left:auto;">
+          ${views ? `<span class="muted" style="font-size:11px;"><i class="fas fa-eye" style="margin-right:3px;"></i>${views}</span>` : ''}
+          ${subs  ? `<span class="muted" style="font-size:11px;"><i class="fas fa-users" style="margin-right:3px;"></i>${subs}</span>` : ''}
+        </div>` : '';
+
+      const ctxBadges = (item.context || []).map(c =>
+        `<span style="font-size:11px; padding:2px 8px; border-radius:999px; ${ctxStyle[c] || ''}">${c}</span>`
+      ).join('');
+
+      const monsterBadges = (item.targetMonsters || []).length ? `
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+          <span class="muted" style="font-size:11px;">対象:</span>
+          ${item.targetMonsters.map(m =>
+            `<span style="font-size:11px; padding:2px 8px; border-radius:6px;
+                   background:#2a1a2a; border:1px solid #6a3a6a; color:#e090e0;">${esc(m)}</span>`
+          ).join('')}
+        </div>` : '';
+
+      const skillsHtml = (item.armorSkills || []).length ? `
+        <div style="margin-bottom:10px;">
+          <p class="muted" style="font-size:11px; margin-bottom:4px;">推奨スキル</p>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${item.armorSkills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}
+          </div>
+        </div>` : '';
+
+      const notesHtml = item.notes ? `
+        <div style="background:#1a1610; border-radius:8px; padding:10px; margin-bottom:12px;">
+          <p style="font-size:12px; color:#a09070; line-height:1.7;">💡 ${esc(item.notes)}</p>
+        </div>` : '';
+
+      const embed = item.youtubeId ? `
+        <div style="margin-bottom:12px; border-radius:10px; overflow:hidden; aspect-ratio:16/9;">
+          <iframe style="width:100%; height:100%;"
+            src="https://www.youtube.com/embed/${esc(item.youtubeId)}"
+            frameborder="0" allowfullscreen loading="lazy"></iframe>
+        </div>` : '';
 
       return `
         <div class="mh-card" style="padding:14px;">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+
+          <!-- ヘッダー: ソース・作者・日付・統計 -->
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
             ${sourceIcon(item.source)}
-            <span class="muted" style="font-size:12px;">${esc(item.author)}</span>
-            <span style="font-size:11px; font-weight:700; color:${diffColor[item.difficulty] || '#a09070'};">${esc(item.difficulty)}</span>
+            <span style="font-size:13px; font-weight:700;">${esc(item.author)}</span>
+            ${item.postedAt ? `<span class="muted" style="font-size:11px;">${esc(item.postedAt)}</span>` : ''}
+            ${item.difficulty ? `<span style="font-size:11px; font-weight:700; color:${diffColor[item.difficulty] || '#a09070'}; margin-left:auto;">${esc(item.difficulty)}</span>` : ''}
+            ${statsHtml}
           </div>
+
+          <!-- タイトル -->
           <p style="font-weight:700; font-size:15px; margin-bottom:10px; line-height:1.4;">${esc(item.title)}</p>
 
-          <!-- 武器・属性 -->
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-            <span class="muted" style="font-size:12px;">武器:</span>
-            <span style="font-weight:700; font-size:14px;">${esc(item.weapon)}</span>
-            ${elemBadge(item.weaponElement)}
+          <!-- 武器種 + 属性 + 用途バッジ -->
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <span style="font-size:13px; font-weight:700; padding:2px 10px; border-radius:6px;
+                         background:#2d2010; border:1px solid #5d4020; color:#e8c060;">
+              ${esc(item.weapon)}
+            </span>
+            ${item.weaponElement && item.weaponElement !== 'なし' ? elemBadge(item.weaponElement) : ''}
+            ${ctxBadges}
           </div>
+
+          <!-- 対象モンスター -->
+          ${monsterBadges}
 
           <!-- スキル -->
-          <div style="margin-bottom:10px;">
-            <p class="muted" style="font-size:11px; margin-bottom:4px;">推奨スキル</p>
-            <div style="display:flex; flex-wrap:wrap; gap:4px;">
-              ${item.armorSkills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}
-            </div>
-          </div>
-
-          <!-- タグ -->
-          <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;">
-            ${item.tags.map(t => `<span style="font-size:11px; padding:2px 8px; border-radius:999px; background:#c9a22718; border:1px solid #c9a22740; color:#c9a227;">${esc(t)}</span>`).join('')}
-          </div>
+          ${skillsHtml}
 
           <!-- メモ -->
-          <div style="background:#1a1610; border-radius:8px; padding:10px;">
-            <p style="font-size:12px; color:#a09070; line-height:1.7;">💡 ${esc(item.notes)}</p>
-          </div>
+          ${notesHtml}
 
+          <!-- YouTube埋め込み -->
           ${embed}
 
+          <!-- リンク -->
           <a href="${esc(item.url)}" target="_blank" rel="noopener"
-             style="display:inline-flex; align-items:center; gap:6px; margin-top:10px; font-size:12px; color:#c9a227; text-decoration:none;">
+             style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#c9a227; text-decoration:none;">
             ${sourceIcon(item.source)} 元の投稿を見る <i class="fas fa-arrow-right" style="font-size:10px;"></i>
           </a>
-        </div>
-      `;
-    }).join('') || '<p class="muted" style="text-align:center; padding:32px;">該当する装備紹介がありません</p>';
+        </div>`;
+    }).join('');
   }
 
   // ── 大量発生 レンダリング ────────────────────────
@@ -731,7 +893,7 @@
         </div>
 
         <!-- 報酬 -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
           <div style="background:#1a1610; border-radius:8px; padding:10px;">
             <p class="muted" style="font-size:11px; margin-bottom:4px;">主な報酬</p>
             ${item.mainRewards.map(r => `<p style="font-size:12px; font-weight:600;">• ${esc(r)}</p>`).join('')}
@@ -741,6 +903,15 @@
             ${item.rareRewards.map(r => `<p style="font-size:12px; font-weight:700; color:#c9a227;">✦ ${esc(r)}</p>`).join('')}
           </div>
         </div>
+
+        <!-- SNS装備タブへの連携ボタン -->
+        <button onclick="switchToSnsWithMonster('${esc(item.monster)}')"
+                style="width:100%; padding:9px; background:#0d1f0d; border:1px solid #2d5a2d;
+                       border-radius:8px; color:#4de88a; font-size:12px; cursor:pointer;
+                       display:flex; align-items:center; justify-content:center; gap:6px;">
+          <i class="fas fa-shield-halved"></i>
+          ${esc(item.monster)} 対応の装備をSNSで探す →
+        </button>
       </div>
     `).join('');
   }
