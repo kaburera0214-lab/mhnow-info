@@ -1,12 +1,12 @@
 {
-  "updated": "2026-09-25 03:09 UTC",
+  "updated": "2026-09-25 11:01 UTC",
   "count": 10,
   "items": [
     {
       "title": "9月28日からコミュニティアンバサダーウィーク開催！",
-      "summary": "2026年9月28日（月）から10月4日（日）は「モンスターハンターNow コミュニティアンバサダーウィーク」です。",
+      "summary": "（2026年9月24日修正）画像および本文中に掲載していたステッカーデザインが配布予定のものと異なっていたため、修正しました。",
       "category": "お知らせ",
-      "image": "https://lh3.googleusercontent.com/FFYWjN-HWx0ySV8akFcIhPd198iJ84ua2fiLcf8Qlg6wUb927izKls2Povi5DbBqzAGCrUCaPDM-BLk4aCOdmiysRS7GTwwz0VHzNhNcQg",
+      "image": "https://lh3.googleusercontent.com/2zvohsShtxwhN7yssY1PlQMhXgLO2n9eroFk6123irngvvSERs06RIi9J3yCznxLid6HGwj2BBCJ3LprSuJRY3Fyhfu00YT4daDiWHiUFcA",
       "url": "https://monsterhunternow.com/ja/news/mhncaweek202609",
       "date": "",
       "teaser": "",
@@ -52,7 +52,12 @@
       "url": "https://monsterhunternow.com/ja/news/tgs2026",
       "date": "",
       "teaser": "",
-      "sections": []
+      "sections": [
+        {
+          "heading": "",
+          "body": "東京ゲームショウ2026 CAPCOMブースステージプログラムにてモンスターハンターNowステージの実施が決定しました！YouTube CAPCOMチャンネルで生配信も実施します。幕張メッセの会場にお越しいただく方はもちろん、お越しいただけない方も、一緒に盛り上がりましょう！ ステージの後半ではTGSを記念した特典プロモーションコードを公開します。"
+        }
+      ]
     },
     {
       "title": "3周年を記念したイベント開催！モンハンNow感謝祭【3周年記念】",
